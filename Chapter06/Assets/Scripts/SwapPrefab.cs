@@ -2,49 +2,45 @@ using UnityEngine;
 
 public class SwapPrefab : MonoBehaviour
 {
-    public Food[] foods;
-    private int currentFoodIndex = 0;
-    private ARPlacePrefab arPlacePrefab;
+    public Food[] AvailableFoods;
+    private int CurrentFoodIndex = 0;
+    private ARPlacePrefab ARPrefabPlacement;
 
     void Start()
     {
-        arPlacePrefab = FindObjectOfType<ARPlacePrefab>();
-        if (foods.Length > 0)
+        ARPrefabPlacement = FindObjectOfType<ARPlacePrefab>();
+        if (AvailableFoods.Length > 0)
         {
-            arPlacePrefab.objectToPlace = foods[0].prefab;
+            ARPrefabPlacement.ObjectToPlace = AvailableFoods[0].prefab;
         }
     }
 
-  public void SwapFoodPrefab()
-{
-    currentFoodIndex = (currentFoodIndex + 1) % foods.Length;
-    arPlacePrefab.objectToPlace = foods[currentFoodIndex].prefab;
-    arPlacePrefab.PlaceObject();  // Instantiate a new object immediately
-
-    // Update the InfoText
-    arPlacePrefab.InfoText.text = $"<b>Name:</b> {foods[currentFoodIndex].name}\n<b>Ingredients:</b> {foods[currentFoodIndex].ingredients}\n<b><color=red>Calories:</color></b> {foods[currentFoodIndex].calories}\n<b>Diet Type:</b> {foods[currentFoodIndex].dietType}";
-}
-
-
-public void SwapToPreviousFoodPrefab()
-{
-    currentFoodIndex--;
-    if (currentFoodIndex < 0)
+    public void SwapFoodPrefab()
     {
-        currentFoodIndex = foods.Length - 1; // Loop to the end if it goes below 0
+        CurrentFoodIndex = (CurrentFoodIndex + 1) % AvailableFoods.Length;
+        ARPrefabPlacement.ObjectToPlace = AvailableFoods[CurrentFoodIndex].prefab;
+        ARPrefabPlacement.PlaceObject();
+
+        // Update the InfoText
+        ARPrefabPlacement.InfoText.text = $"<b>Name:</b> {AvailableFoods[CurrentFoodIndex].name}\n<b>Ingredients:</b> {AvailableFoods[CurrentFoodIndex].ingredients}\n<b><color=red>Calories:</color></b> {AvailableFoods[CurrentFoodIndex].calories}\n<b>Diet Type:</b> {AvailableFoods[CurrentFoodIndex].dietType}";
     }
-    arPlacePrefab.objectToPlace = foods[currentFoodIndex].prefab;
-    arPlacePrefab.PlaceObject();  // Instantiate a new object immediately
 
-    // Update the InfoText
-    arPlacePrefab.InfoText.text = $"<b>Name:</b> {foods[currentFoodIndex].name}\n<b>Ingredients:</b> {foods[currentFoodIndex].ingredients}\n<b><color=red>Calories:</color></b> {foods[currentFoodIndex].calories}\n<b>Diet Type:</b> {foods[currentFoodIndex].dietType}";
-}
+    public void SwapToPreviousFoodPrefab()
+    {
+        CurrentFoodIndex--;
+        if (CurrentFoodIndex < 0)
+        {
+            CurrentFoodIndex = AvailableFoods.Length - 1; 
+        }
+        ARPrefabPlacement.ObjectToPlace = AvailableFoods[CurrentFoodIndex].prefab;
+        ARPrefabPlacement.PlaceObject(); 
 
+        // Update the InfoText
+        ARPrefabPlacement.InfoText.text = $"<b>Name:</b> {AvailableFoods[CurrentFoodIndex].name}\n<b>Ingredients:</b> {AvailableFoods[CurrentFoodIndex].ingredients}\n<b><color=red>Calories:</color></b> {AvailableFoods[CurrentFoodIndex].calories}\n<b>Diet Type:</b> {AvailableFoods[CurrentFoodIndex].dietType}";
+    }
 
     public Food GetCurrentFood()
     {
-        return foods[currentFoodIndex];
+        return AvailableFoods[CurrentFoodIndex];
     }
 }
-
-

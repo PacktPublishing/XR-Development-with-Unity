@@ -3,97 +3,48 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using UnityEngine.UI;
+using TMPro;
 
 public class ARPlacePrefab : MonoBehaviour
 {
-    public GameObject objectToPlace;
-    public SwapPrefab swapPrefabScript;
-    public GameObject buttonPrefab; // For next prefab
-    public GameObject buttonPrefabPrev; // For previous prefab
-    public TMPro.TextMeshProUGUI InfoText;
+    public GameObject ObjectToPlace;
+    public SwapPrefab SwapPrefabScript;
+    public GameObject NextPrefabButton;
+    public GameObject PreviousPrefabButton;
+    public TextMeshProUGUI InfoText;
     public Button PlaceFirstMealButton;
     public GameObject InfoPanel;
 
-    private ARRaycastManager arRaycastManager;
-    private Pose placementPose;
-    private bool placementPoseIsValid = false;
-    private GameObject placedObject;
-    private GameObject placedButtonNext;
-    private GameObject placedButtonPrev;
-    private Vector2 oldTouchDistance; // for pinch-to-scale
-    private GameObject placementIndicator;
-    private GameObject placementGrid;
-
+    private ARRaycastManager _arRaycastManager;
+    private Pose _placementPose;
+    private bool _placementPoseIsValid = false;
+    private GameObject _placedObject;
+    private GameObject _nextButton;
+    private GameObject _previousButton;
+    private Vector2 _oldTouchDistance;
+    private GameObject _placementIndicator;
+    private GameObject _placementGrid;
 
     void Start()
     {
-        arRaycastManager = FindObjectOfType<ARRaycastManager>();
-
-        // Instantiate the button for next prefab
-        placedButtonNext = Instantiate(buttonPrefab);
-        placedButtonNext.SetActive(false);
-        placedButtonNext.GetComponent<Button>().onClick.AddListener(swapPrefabScript.SwapFoodPrefab);
-
-        // Instantiate the button for previous prefab
-        placedButtonPrev = Instantiate(buttonPrefabPrev);
-        placedButtonPrev.SetActive(false);
-        placedButtonPrev.GetComponent<Button>().onClick.AddListener(swapPrefabScript.SwapToPreviousFoodPrefab);
-
-        // Create your placement grid
-        placementGrid = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        placementGrid.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-        placementGrid.GetComponent<Renderer>().material = Resources.Load<Material>("GridMaterial");
-        placementGrid.SetActive(false);
-
-        // Add this line
-        PlaceFirstMealButton.onClick.AddListener(() =>
-        {
-            if (placementPoseIsValid)
-            {
-                PlaceObject();
-                InfoPanel.SetActive(false);
-
-            }
-        });
+        _arRaycastManager = FindObjectOfType<ARRaycastManager>();
+        _nextButton = InstantiateButton(NextPrefabButton, SwapPrefabScript.SwapFoodPrefab);
+        _previousButton = InstantiateButton(PreviousPrefabButton, SwapPrefabScript.SwapToPreviousFoodPrefab);
+        _placementGrid = CreatePlacementGrid();
+        PlaceFirstMealButton.onClick.AddListener(PlaceObjectIfNeeded);
     }
 
     void Update()
     {
         if (Input.touchCount == 2)
         {
-          
-            // Store both touches.
-            Touch touchZero = Input.GetTouch(0);
-            Touch touchOne = Input.GetTouch(1);
-
-            if (touchZero.phase == TouchPhase.Moved || touchOne.phase == TouchPhase.Moved)
-            {
-                // Calculate new pinch distance
-                Vector2 touchDistance = touchOne.position - touchZero.position;
-                float pinchDistanceChange = touchDistance.magnitude - oldTouchDistance.magnitude;
-
-                // You can tune this value to adjust the sensitivity
-                float pinchToScaleSensitivity = 0.001f;
-
-                // Scale the placed object relative to the pinch distance change
-                if (placedObject != null)
-                {
-                    Vector3 newScale = placedObject.transform.localScale + new Vector3(pinchDistanceChange, pinchDistanceChange, pinchDistanceChange) * pinchToScaleSensitivity;
-                    // Clamp the scale to reasonable values
-                    newScale = Vector3.Max(newScale, new Vector3(0.1f, 0.1f, 0.1f));
-                    newScale = Vector3.Min(newScale, new Vector3(10f, 10f, 10f));
-                    placedObject.transform.localScale = newScale;
-                }
-
-                // Update old pinch distance
-                oldTouchDistance = touchDistance;
-            }
+            PinchToScale();
         }
 
         UpdatePlacementPose();
         UpdatePlacementIndicator();
 
-        if (placementPoseIsValid && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        if (_placementPoseIsValid && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
         {
             PlaceObject();
         }
@@ -101,64 +52,124 @@ public class ARPlacePrefab : MonoBehaviour
 
     public void PlaceObject()
     {
-        if (placedObject != null)
+        if (_placedObject != null)
         {
-            Destroy(placedObject);
+            Destroy(_placedObject);
         }
 
-        placedObject = Instantiate(objectToPlace, placementPose.position, placementPose.rotation);
-        placedObject.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+        _placedObject = Instantiate(ObjectToPlace, _placementPose.position, _placementPose.rotation);
+        _placedObject.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+        PositionButton(_nextButton, new Vector3(0.5f, 0f, 0f));
+        PositionButton(_previousButton, new Vector3(-0.5f, 0f, 0f));
 
-        placedButtonNext.transform.position = placedObject.transform.position + new Vector3(0.5f, 0f, 0f);
-        placedButtonNext.SetActive(true);
+        UpdateFoodInfoText();
 
-        placedButtonPrev.transform.position = placedObject.transform.position + new Vector3(-0.5f, 0f, 0f); // adjust as needed
-        placedButtonPrev.SetActive(true);
-
-        // Get the current food
-        Food currentFood = swapPrefabScript.GetCurrentFood();
-
-        // Update the InfoText
-        InfoText.text = $"<b>Name:</b> {currentFood.name}\n<b>Ingredients:</b> {currentFood.ingredients}\n<b><color=red>Calories:</color></b> {currentFood.calories}\n<b>Diet Type:</b> {currentFood.dietType}";
-
-        // Position the InfoText above the prefab
-        InfoText.transform.position = placedObject.transform.position + new Vector3(-0.2f, 0.3f, 0f); // adjust the y offset as needed
-        InfoText.transform.rotation = placedObject.transform.rotation;
-
-
-        // Hide the placement grid
-        placementGrid.SetActive(false);
+        _placementGrid.SetActive(false);
     }
 
     private void UpdatePlacementPose()
     {
         var screenCenter = Camera.current.ViewportToScreenPoint(new Vector3(0.5f, 0.5f));
         var hits = new List<ARRaycastHit>();
-        arRaycastManager.Raycast(screenCenter, hits, TrackableType.Planes);
+        _arRaycastManager.Raycast(screenCenter, hits, TrackableType.Planes);
 
-        placementPoseIsValid = hits.Count > 0;
-        if (placementPoseIsValid)
+        _placementPoseIsValid = hits.Count > 0;
+        if (_placementPoseIsValid)
         {
-            placementPose = hits[0].pose;
-            placementGrid.transform.SetPositionAndRotation(hits[0].pose.position, hits[0].pose.rotation);
-            placementGrid.SetActive(true); // Show the grid when the placement pose is valid
+            _placementPose = hits[0].pose;
+            PositionGrid(hits[0].pose.position, hits[0].pose.rotation);
         }
         else
         {
-            placementGrid.SetActive(false); // Hide the grid when the placement pose is not valid
+            _placementGrid.SetActive(false);
         }
     }
 
     private void UpdatePlacementIndicator()
     {
-        if (placementPoseIsValid)
+        if (_placementPoseIsValid)
         {
-            placementIndicator.SetActive(true);
-            placementIndicator.transform.SetPositionAndRotation(placementPose.position, placementPose.rotation);
+            _placementIndicator.SetActive(true);
+            _placementIndicator.transform.SetPositionAndRotation(_placementPose.position, _placementPose.rotation);
         }
         else
         {
-            placementIndicator.SetActive(false);
+            _placementIndicator.SetActive(false);
         }
+    }
+
+    private GameObject InstantiateButton(GameObject buttonPrefab, UnityEngine.Events.UnityAction onClickAction)
+    {
+        var button = Instantiate(buttonPrefab);
+        button.SetActive(false);
+        button.GetComponent<Button>().onClick.AddListener(onClickAction);
+        return button;
+    }
+
+    private GameObject CreatePlacementGrid()
+    {
+        var grid = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        grid.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+        grid.GetComponent<Renderer>().material = Resources.Load<Material>("GridMaterial");
+        grid.SetActive(false);
+        return grid;
+    }
+
+    private void PlaceObjectIfNeeded()
+    {
+        if (_placementPoseIsValid)
+        {
+            PlaceObject();
+            InfoPanel.SetActive(false);
+        }
+    }
+
+    private void PinchToScale()
+    {
+        Touch touchZero = Input.GetTouch(0);
+        Touch touchOne = Input.GetTouch(1);
+
+        if (touchZero.phase == TouchPhase.Moved || touchOne.phase == TouchPhase.Moved)
+        {
+            Vector2 touchDistance = touchOne.position - touchZero.position;
+            float pinchDistanceChange = touchDistance.magnitude - _oldTouchDistance.magnitude;
+
+            float pinchToScaleSensitivity = 0.001f;
+
+            if (_placedObject != null)
+            {
+                ScalePlacedObject(pinchDistanceChange, pinchToScaleSensitivity);
+            }
+
+            _oldTouchDistance = touchDistance;
+        }
+    }
+
+    private void ScalePlacedObject(float pinchDistanceChange, float pinchToScaleSensitivity)
+    {
+        Vector3 newScale = _placedObject.transform.localScale + new Vector3(pinchDistanceChange, pinchDistanceChange, pinchDistanceChange) * pinchToScaleSensitivity;
+        newScale = Vector3.Max(newScale, new Vector3(0.1f, 0.1f, 0.1f));
+        newScale = Vector3.Min(newScale, new Vector3(10f, 10f, 10f));
+        _placedObject.transform.localScale = newScale;
+    }
+
+    private void PositionButton(GameObject button, Vector3 offset)
+    {
+        button.transform.position = _placedObject.transform.position + offset;
+        button.SetActive(true);
+    }
+
+    private void UpdateFoodInfoText()
+    {
+        Food currentFood = SwapPrefabScript.GetCurrentFood();
+        InfoText.text = $"<b>Name:</b> {currentFood.name}\n<b>Ingredients:</b> {currentFood.ingredients}\n<b><color=red>Calories:</color></b> {currentFood.calories}\n<b>Diet Type:</b> {currentFood.dietType}";
+        InfoText.transform.position = _placedObject.transform.position + new Vector3(-0.2f, 0.3f, 0f);
+        InfoText.transform.rotation = _placedObject.transform.rotation;
+    }
+
+    private void PositionGrid(Vector3 position, Quaternion rotation)
+    {
+        _placementGrid.transform.SetPositionAndRotation(position, rotation);
+        _placementGrid.SetActive(true);
     }
 }
