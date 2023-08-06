@@ -23,6 +23,16 @@ public class VelocityEstimator : MonoBehaviour
 	private int sampleCount;
 	private Vector3[] velocitySamples;
 	private Vector3[] angularVelocitySamples;
+	private VelocityEstimator velocityEstimator;
+
+    private void Start()
+    {
+        velocityEstimator = GetComponent<VelocityEstimator>();
+        if (velocityEstimator != null)
+        {
+            velocityEstimator.BeginEstimatingVelocity();
+        }
+    }
 
 	
 	//-------------------------------------------------

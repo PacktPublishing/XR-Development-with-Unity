@@ -23,15 +23,19 @@ public class PlaySoundOnCollision : MonoBehaviour
         if (other.CompareTag(tag))
         {
             VelocityEstimator velEstimator = other.GetComponent<VelocityEstimator>();
+           
             if (velEstimator && enableVelocity)
             {
-                float v = velEstimator.GetVelocityEstimate().magnitude;
-                float soundVolume = Mathf.InverseLerp(minimumVelocity, maximumVelocity, v);
+                float velocityMagnitude = velEstimator.GetVelocityEstimate().magnitude;
+                float soundVolume = Mathf.InverseLerp(minimumVelocity, maximumVelocity, velocityMagnitude);
 
                 _soundSource.PlayOneShot(soundClip, soundVolume);
             }
             else
+            {
                 _soundSource.PlayOneShot(soundClip);
+            
+            }
 
         }
     }
