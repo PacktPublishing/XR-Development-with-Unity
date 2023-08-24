@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.XR;
 using Photon.Pun;
 using UnityEngine.InputSystem;
+
 public class NetworkPlayer : MonoBehaviour
 {
     public Transform head;
