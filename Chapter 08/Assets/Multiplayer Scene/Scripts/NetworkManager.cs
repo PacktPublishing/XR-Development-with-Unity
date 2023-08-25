@@ -17,14 +17,14 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         if (!PhotonNetwork.IsConnected)
         {
             PhotonNetwork.ConnectUsingSettings();
-            DebugLog("Attempting server connection...");
+            Debug.Log("Attempting server connection...");
         }
     }
 
     public override void OnConnectedToMaster()
     {
         base.OnConnectedToMaster();
-        DebugLog("Connected to Master Server.");
+        Debug.Log("Connected to Master Server.");
 
         JoinOrCreateGameRoom();
     }
@@ -44,17 +44,13 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         base.OnJoinedRoom();
-        DebugLog("Successfully joined a room.");
+        Debug.Log("Successfully joined a room.");
     }
 
     public override void OnPlayerEnteredRoom(Player newParticipant)
     {
         base.OnPlayerEnteredRoom(newParticipant);
-        DebugLog("Another player has joined the room.");
+        Debug.Log("Another player has joined the room.");
     }
 
-    private void DebugLog(string message)
-    {
-        Debug.Log(message);
-    }
 }
